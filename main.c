@@ -533,8 +533,9 @@ int main(int argc, char **argv)
     int cpu = -1;
     int numa_mode = 0;
     int verbose = 0;
+    int repeat = 1;
     char *test_name = NULL;
-    while ((opt = getopt(argc, argv, "c:nN:v")) != -1) {
+    while ((opt = getopt(argc, argv, "c:nN:vr:")) != -1) {
         switch (opt) {
             case 'n':
                 numa_mode = 1;
@@ -546,6 +547,9 @@ int main(int argc, char **argv)
                 break;
             case 'v':
                 verbose = 1;
+                break;
+            case 'r':
+                repeat = atoi(optarg);
                 break;
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-c cpu] [-n] [-N name] [-v]\n", argv[0]);
@@ -581,21 +585,23 @@ int main(int argc, char **argv)
         printf("==========================================================================\n\n");
     }
 
-    bandwidth_bench(dstbuf, srcbuf, tmpbuf, bufsize, BLOCKSIZE, " ", c_benchmarks, test_name);
-    if (verbose) {
-        printf(" ---\n");
-    }
-    bandwidth_bench(dstbuf, srcbuf, tmpbuf, bufsize, BLOCKSIZE, " ", libc_benchmarks, test_name);
-    bench_info *bi = get_asm_benchmarks();
-    if (bi->f) {
+    for (int i = 0; i < repeat; i++) {
+        bandwidth_bench(dstbuf, srcbuf, tmpbuf, bufsize, BLOCKSIZE, " ", c_benchmarks, test_name);
         if (verbose) {
             printf(" ---\n");
         }
-        bandwidth_bench(dstbuf, srcbuf, tmpbuf, bufsize, BLOCKSIZE, " ", bi, test_name);
+        bandwidth_bench(dstbuf, srcbuf, tmpbuf, bufsize, BLOCKSIZE, " ", libc_benchmarks, test_name);
+        bench_info *bi = get_asm_benchmarks();
+        if (bi->f) {
+            if (verbose) {
+                printf(" ---\n");
+            }
+            bandwidth_bench(dstbuf, srcbuf, tmpbuf, bufsize, BLOCKSIZE, " ", bi, test_name);
+        }
     }
 
 #ifdef __linux__
-    bi = get_asm_framebuffer_benchmarks();
+    bench_info *bi = get_asm_framebuffer_benchmarks();
     if (bi->f && fbbuf)
     {
         if (verbose) {
@@ -624,7 +630,8 @@ int main(int argc, char **argv)
         srcbuf = fbbuf;
         if (bufsize > fbsize)
             bufsize = fbsize;
-        bandwidth_bench(dstbuf, srcbuf, tmpbuf, bufsize, BLOCKSIZE, " ", bi, test_name);
+        for (int i = 0; i < repeat; i++)
+            bandwidth_bench(dstbuf, srcbuf, tmpbuf, bufsize, BLOCKSIZE, " ", bi, test_name);
     }
 #endif
 
@@ -661,7 +668,8 @@ int main(int argc, char **argv)
     if (test_name == NULL && (!latency_bench(latbench_size, latbench_count, -1) ||
         !latency_bench(latbench_size, latbench_count, 1)))
     {
-        latency_bench(latbench_size, latbench_count, 0);
+        for (int i = 0; i < repeat; i++)
+            latency_bench(latbench_size, latbench_count, 0);
     }
 
     return 0;
