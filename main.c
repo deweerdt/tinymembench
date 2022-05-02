@@ -533,15 +533,19 @@ int main(int argc, char **argv)
     int cpu = -1;
     int numa_mode = 0;
     int verbose = 0;
+    int copy_only = 0;
     int repeat = 1;
     char *test_name = NULL;
-    while ((opt = getopt(argc, argv, "c:nN:vr:")) != -1) {
+    while ((opt = getopt(argc, argv, "Cc:nN:vr:s:")) != -1) {
         switch (opt) {
             case 'n':
                 numa_mode = 1;
             case 'N':
                 test_name = optarg;
                 break;
+            case 'C':
+		copy_only = 1;
+		break;
             case 'c':
                 cpu = atoi(optarg);
                 break;
@@ -551,8 +555,12 @@ int main(int argc, char **argv)
             case 'r':
                 repeat = atoi(optarg);
                 break;
+            case 's':
+                latbench_size = atoi(optarg) * 2;
+                bufsize = atoi(optarg);
+                break;
             default: /* '?' */
-                fprintf(stderr, "Usage: %s [-c cpu] [-n] [-N name] [-v]\n", argv[0]);
+                fprintf(stderr, "Usage: %s [-s size] [-c cpu] [-n] [-N name] [-v]\n", argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
@@ -640,6 +648,8 @@ int main(int argc, char **argv)
     } else {
         free(poolbuf);
     }
+    if (copy_only)
+	return 0;
 
     if (verbose) {
         printf("\n");
